@@ -2,6 +2,8 @@ const fetch = require("../libs/fetch");
 
 const apiCall = (socket) => {
 
+    console.log(`Socket ID: ${socket.id} is connected to API namespace`);
+
     //Here the data object will take 'url','method','isApiCall','applicationId','requestName','body'
     socket.on('socket-data', async data => {
 
@@ -22,7 +24,7 @@ const apiCall = (socket) => {
         if (reason === "io server disconnect") {
             socket.connect();
         }
-        console.log(`Socket ID: ${socket.id} is disconnected`);
+        console.log(`Socket ID: ${socket.id} is disconnected from API namespace`);
     });
 }
 
