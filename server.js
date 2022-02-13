@@ -1,63 +1,80 @@
 const express = require("express");
 const { createServer } = require("http");
 const { Server } = require("socket.io");
-const axios = require("axios");
+const http = require('http');
+const os = require('os');
+const networkInterfaces = os.networkInterfaces();
+const numCPUs = require("os").cpus().length;
+const { setupMaster, setupWorker } = require("@socket.io/sticky");
+const { createAdapter, setupPrimary } = require("@socket.io/cluster-adapter");
 const PORT = process.env.PORT || 4000;
 const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
-    cors: {
-        origin: "*"
+const cluster = require("cluster");
+const chat = require("./NameSpace/chat");
+const apiCall = require("./NameSpace/apiCall");
+
+
+if (cluster.isMaster) {
+    console.log(`Master ${process.pid} is running`);
+
+    const httpServer = http.createServer();
+
+    // setup sticky sessions
+    setupMaster(httpServer, {
+        loadBalancingMethod: "least-connection",
+    });
+
+    // setup connections between the workers
+    setupPrimary();
+
+    // needed for packets containing buffers (you can ignore it if you only send plaintext objects)
+    // Node.js < 16.0.0
+    cluster.setupMaster({
+        serialization: "advanced",
+    });
+    // Node.js > 16.0.0
+    // cluster.setupPrimary({
+    //   serialization: "advanced",
+    // });
+
+    httpServer.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`)
+    });
+
+    for (let i = 0; i < numCPUs; i++) {
+        cluster.fork();
     }
-});
 
-const fetch = async (data) => {
-    switch (data.method) {
-        case 'get':
-            return await axios.get(data.url);
-        case 'post':
-            return await axios.post(data.url, data.body);
-        case 'put':
-            return await axios.put(data.url, data.body);
-        case 'delete':
-            return await axios.delete(data.url);
-        default:
-            return await axios.get(data.url);
-    }
-}
+    cluster.on("exit", (worker) => {
+        console.log(`Worker ${worker.process.pid} died`);
+        cluster.fork();
+    });
+} else {
+    console.log(`Worker ${process.pid} started`);
 
-
-// check the status of the request
-app.get('/', (req, res) => {
-    res.json({
-        message: 'Server is running',
-        IP: req.ip
-    })
-})
-
-io.on("connection", (socket) => {
-
-    //Here the data object will take 'url','method','isApiCall','applicationId','requestName','body'
-    socket.on('socket-data', async data => {
-
-        if (data.isApiCall) {
-
-            const { data: response } = await fetch(data);
-            let responseData = {
-                ...data,
-                response
-            }
-            socket.broadcast.emit('socket-data', (responseData));
-        } else {
-            socket.broadcast.emit('socket-data', (data));
+    const httpServer = createServer(app);
+    const io = new Server(httpServer, {
+        cors: {
+            origin: "*"
         }
+    });
+
+    // use the cluster adapter
+    io.adapter(createAdapter());
+
+    // setup connection with the primary process
+    setupWorker(io);
+
+    // check the status of the request
+    app.get('/', (req, res) => {
+        res.json({
+            message: 'Server is running',
+            processID: process.pid,
+            hostname: os.hostname(),
+            IP: networkInterfaces.Ethernet[1].address
+        })
     })
 
-    socket.on('disconnected', socket => {
-        console.log(`Socket id ${socket.id} got disconnected`)
-    })
-});
-
-httpServer.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`)
-});
+    io.of('/chat').on('connection', (chat));
+    io.of('/api').on('connection', (apiCall));
+}
