@@ -3,6 +3,7 @@ const { createServer } = require("http");
 const { Server } = require("socket.io");
 const http = require('http');
 const os = require('os');
+const ip = require('ip');
 const networkInterfaces = os.networkInterfaces();
 const numCPUs = require("os").cpus().length;
 const { setupMaster, setupWorker } = require("@socket.io/sticky");
@@ -71,7 +72,7 @@ if (cluster.isMaster) {
             message: 'Server is running',
             processID: process.pid,
             hostname: os.hostname(),
-            IP: networkInterfaces.Ethernet[1].address
+            ip: ip.address()
         })
     })
 
