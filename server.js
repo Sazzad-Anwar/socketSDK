@@ -4,7 +4,6 @@ const { Server } = require("socket.io");
 const http = require('http');
 const os = require('os');
 const ip = require('ip');
-const networkInterfaces = os.networkInterfaces();
 const numCPUs = require("os").cpus().length;
 const { setupMaster, setupWorker } = require("@socket.io/sticky");
 const { createAdapter, setupPrimary } = require("@socket.io/cluster-adapter");
@@ -72,7 +71,8 @@ if (cluster.isMaster) {
             message: 'Server is running',
             processID: process.pid,
             hostname: os.hostname(),
-            ip: ip.address()
+            ip: ip.address(),
+            CPUs: numCPUs
         })
     })
 
