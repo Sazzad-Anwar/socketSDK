@@ -39,12 +39,18 @@ io.on("connection", (socket) => {
 
     //Here the data object will take 'url','method','isApiCall','applicationId','requestName','body'
     socket.on('socket-data', async data => {
-        const { data: response } = await fetch(data);
-        let responseData = {
-            ...data,
-            response
+
+        if (data.isApiCall) {
+
+            const { data: response } = await fetch(data);
+            let responseData = {
+                ...data,
+                response
+            }
+            socket.broadcast.emit('socket-data', (responseData));
+        } else {
+            socket.broadcast.emit('socket-data', (data));
         }
-        socket.broadcast.emit('socket-data', (responseData));
     })
 
     socket.on('disconnected', socket => {
