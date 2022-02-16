@@ -76,6 +76,14 @@ if (cluster.isMaster) {
         })
     })
 
-    io.of('/chat').on('connection', (chat));
-    io.of('/api').on('connection', (apiCall));
+    let chatNameSpace = io.of("/chat");
+    let ApiNameSpace = io.of("/api");
+
+    chatNameSpace.on('connection', socket => {
+        chat(socket, io);
+    })
+
+    ApiNameSpace.on('connection', socket => {
+        apiCall(socket, io);
+    })
 }
