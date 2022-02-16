@@ -55,7 +55,7 @@ if (cluster.isMaster) {
     const httpServer = createServer(app);
     const io = new Server(httpServer, {
         cors: {
-            origin: "http://localhost"
+            origin: "http://localhost:5501"
         }
     });
 
