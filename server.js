@@ -54,8 +54,9 @@ if (cluster.isMaster) {
 
     const httpServer = createServer(app);
     const io = new Server(httpServer, {
-        cors: {
-            origin: "*"
+        allowRequest: (req, callback) => {
+            const noOriginHeader = req.headers.origin === undefined;
+            callback(null, noOriginHeader);
         }
     });
 
