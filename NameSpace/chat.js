@@ -11,11 +11,11 @@ const chat = (socket) => {
     })
 
     socket.on('public-message', data => {
-        socket.broadcast.emit('public-message', data);
+        socket.broadcast.emit('public-message', ({ ...data, from: socket.id }));
     })
 
     socket.on('private-message', data => {
-        socket.to(data.to).emit('private-message', ({ ...data, socketId: socket.id }));
+        socket.to(data.to).emit('private-message', ({ ...data, from: socket.id, to: data.to }));
     });
 
     socket.on("disconnect", async () => {
