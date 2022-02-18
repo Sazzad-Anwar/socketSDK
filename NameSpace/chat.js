@@ -2,6 +2,10 @@ const chat = (socket) => {
 
     console.log(`Socket ID: ${socket.id} is connected to chat namespace`);
 
+    socket.on('test-event', data => {
+        socket.emit('test-event', data)
+    })
+
     socket.on('typing', (data) => {
         socket.broadcast.emit('typing', data);
     })
